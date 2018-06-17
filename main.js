@@ -1,5 +1,11 @@
 // Modules to control application life and create native browser window
 const {app, BrowserWindow, Menu, shell} = require('electron')
+const ipc = require('electron').ipcMain;
+const axios = require('axios');
+
+// const powerSaveBlocker = require('electron').powerSaveBlocker;
+// powerSaveBlocker.start('prevent-app-suspension');
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
@@ -69,3 +75,9 @@ app.on('activate', function () {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+ipc.on('update-notify-value', (event, arg) => {
+  console.log('Dipacthing update');
+  mainWindow.webContents.send('target-price-val', arg);
+})
+
