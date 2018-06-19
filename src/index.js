@@ -8,19 +8,38 @@ const addWindowOptions = {frame: false, transparent: true, alwaysOnTop: true, wi
 const notifyBtn = document.getElementById('notifyBtn');
 const modalPath = path.join('file://', __dirname, 'add.html')
 
-const price = document.querySelector('h1');
-const targetPrice = document.getElementById('targetPrice');
+let targetPrice = 0;
 
+const notifyIfGreater = (btcValue, targetPrice) => {
+  const notification = {
+    title: 'BTC Alert',
+    body: `BTC just beat target price ${btcValue}`,
+    icon: path.join(__dirname, '../assets/images/btc.png')
+  }
 
-const getBtc = () => {
-  axios.get('https://min-api.cryptocompare.com/data/pricemulti?fsyms=BTC&tsyms=USD')
-    .then(res => {
-      const cryptos = res.data.BTC.USD;
-      price.innerHTML = `$${cryptos.toLocaleString('en')}`
-    })
+  if(targetPrice && btcValue > targetPrice) {
+    new window.Notification(notification.title, notification);
+  }
 }
 
-setInterval(getBtc(), 3000);
+const getBtc = () => {
+  axios.get('https://min-api.cryptocompare.com/data/pricemulti?fsyms=BTC,ETH&tsyms=AUD')
+    .then(res => {
+      // const cryptos = res.data.BTC.AUD;
+      // document.querySelector('h1').innerHTML = `$${cryptos.toLocaleString('en')}`
+      const {BTC, ETH} = res.data;
+      document.getElementById('btc-value').innerHTML = `$${BTC.AUD.toLocaleString('en')}`
+      document.getElementById('eth-value').innerHTML = `$${ETH.AUD.toLocaleString('en')}`
+      return res;
+    })
+    .then((res) => {
+      ipcRenderer.send('fetched-price', res.data);
+      return res;
+    })
+    .then((res) => notifyIfGreater(res.data.BTC.USD, targetPrice))
+}
+
+setInterval(getBtc, 3000);
 
 notifyBtn.addEventListener('click', (event) => {
   let win = new BrowserWindow(addWindowOptions);
@@ -30,9 +49,6 @@ notifyBtn.addEventListener('click', (event) => {
 })
 
 ipcRenderer.on('target-price-val', (event, arg) => {
-  targetPrice.innerHTML = `$${Number(arg).toLocaleString('en')}`;
-})
-
-ipcRenderer.on('price-fetched', (event, arg) => {
-  price.innerHTML = `$${arg.toLocaleString('en')}`;
+  targetPrice = Number(arg);
+  document.getElementById('targetPrice').innerHTML = `$${targetPrice.toLocaleString('en')}`;
 })
